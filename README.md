@@ -64,3 +64,11 @@ Open http://127.0.0.1:7860
 For educational purposes only. Not for clinical use.
 Always consult a qualified healthcare professional.
 # medscript-guard
+
+## Screenshots
+
+### HIGH RISK — Drug Interaction Detected
+![High Risk Demo](screenshots/high_risk_demo.png)
+
+### LOW RISK — No Issues Detected
+![Low Risk Demo](screenshots/low_risk_demo.png)
