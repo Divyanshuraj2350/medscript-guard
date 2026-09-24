@@ -1,0 +1,14 @@
+artifact_uri: /Users/divyanshu23/Downloads/MEDISCRIPT_TRANSFORM/medscript-guard/mlflow_runs/318251182652552263/3379f52e3a4d4aa999b69ab41b2a0f35/artifacts
+end_time: 1789269163331
+entry_point_name: ''
+experiment_id: '318251182652552263'
+lifecycle_stage: active
+run_id: 3379f52e3a4d4aa999b69ab41b2a0f35
+run_name: risk_scoring
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1789269163324
+status: 3
+tags: []
+user_id: divyanshu23

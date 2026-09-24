@@ -1,0 +1,14 @@
+artifact_uri: /Users/divyanshu23/Downloads/MEDISCRIPT_TRANSFORM/medscript-guard/mlflow_runs/318251182652552263/81904f7ab1fe4d50ac479e7b1d4e6e5f/artifacts
+end_time: 1789268896828
+entry_point_name: ''
+experiment_id: '318251182652552263'
+lifecycle_stage: active
+run_id: 81904f7ab1fe4d50ac479e7b1d4e6e5f
+run_name: ner_extraction
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1789268896818
+status: 3
+tags: []
+user_id: divyanshu23
