@@ -63,3 +63,4 @@ Open http://127.0.0.1:7860
 
 For educational purposes only. Not for clinical use.
 Always consult a qualified healthcare professional.
+# medscript-guard
