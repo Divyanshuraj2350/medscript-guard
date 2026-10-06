@@ -10,3 +10,4 @@ mlflow.db
 dist/
 build/
 screen_sort/
+.DS_Store
