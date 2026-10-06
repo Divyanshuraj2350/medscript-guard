@@ -1,7 +1,12 @@
 .venv/
 __pycache__/
 *.pyc
+*.pyo
 .DS_Store
 mlflow_runs/
 mlflow.db
 .pytest_cache/
+*.egg-info/
+dist/
+build/
+screen_sort/
