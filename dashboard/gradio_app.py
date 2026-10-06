@@ -12,7 +12,10 @@ SAMPLE_PRESCRIPTIONS = [
     "Patient age 11. Nimesulide 100mg once daily for fever",
     "Patient age 45. Metformin 500mg twice daily. Alcohol consumption reported",
     "Patient age 30. Amoxicillin 500mg three times daily for 7 days",
-    "Patient age 72. Warfarin 10mg once daily with aspirin 200mg"
+    "Patient age 72. Warfarin 10mg once daily with aspirin 200mg",
+    "Patient age 8. Dolo 650mg twice daily with disprin 100mg",
+    "Patient age 55. Escitalopram 10mg once daily with tramadol 50mg",
+    "Patient age 40. Clopidogrel 75mg once daily with omeprazole 20mg"
 ]
 
 def analyze(prescription_text):
@@ -29,7 +32,7 @@ def analyze(prescription_text):
             timeout=30
         )
         if response.status_code != 200:
-            return "❌ API error. Make sure the server is running.", "", ""
+            return "❌ API error. Make sure the server is running on port 8000.", "", ""
 
         report = response.json()
         risk = report["overall_risk"]
@@ -41,7 +44,6 @@ def analyze(prescription_text):
             "CRITICAL": "🚨 CRITICAL RISK"
         }
         risk_display = risk_icons.get(risk, risk)
-
         summary_text = f"**{risk_display}**\n\n{report['summary']}"
 
         if not report["flags"]:
@@ -64,6 +66,7 @@ def analyze(prescription_text):
                     f"---\n\n"
                 )
 
+        # Extract details by running pipeline directly
         details_text = ""
         try:
             from src.preprocessing.preprocessor import preprocess
@@ -74,17 +77,26 @@ def analyze(prescription_text):
             entities = extract_entities(cleaned)
             prescription = extract_relations(entities)
 
+            age = prescription.get("patient_age")
+            drugs = prescription.get("drugs", [])
+
             details_text = "**Extracted Information:**\n\n"
-            details_text += f"👤 Patient Age: {prescription.get('patient_age', 'Not detected')}\n\n"
-            details_text += "**Drugs Found:**\n\n"
-            for drug in prescription.get("drugs", []):
-                details_text += (
-                    f"- 💊 **{drug['name'].capitalize()}** "
-                    f"| Dose: {drug['dosage'] or 'not specified'} "
-                    f"| Frequency: {drug['frequency'] or 'not specified'}\n"
-                )
-        except Exception:
-            details_text = "Could not extract details."
+            details_text += f"👤 Patient Age: {age if age else 'Not detected'}\n\n"
+
+            if drugs:
+                details_text += "**Drugs Found:**\n\n"
+                for drug in drugs:
+                    name = drug['name'].capitalize()
+                    dose = drug['dosage'] if drug['dosage'] else 'not specified'
+                    freq = drug['frequency'] if drug['frequency'] else 'not specified'
+                    details_text += f"- 💊 **{name}** | Dose: {dose} | Frequency: {freq}\n"
+            else:
+                details_text += "**Drugs Found:** None detected\n\n"
+                details_text += "💡 *Try using generic drug names like 'warfarin', "
+                details_text += "'aspirin', 'metformin', 'paracetamol', 'ibuprofen'*"
+
+        except Exception as e:
+            details_text = f"Could not extract details: {str(e)}"
 
         return summary_text, flags_text, details_text
 
@@ -98,16 +110,12 @@ def analyze(prescription_text):
         return f"❌ Unexpected error: {str(e)}", "", ""
 
 
-def load_sample(sample):
-    return sample
-
-
 with gr.Blocks(title="MedScript Guard", theme=gr.themes.Soft()) as app:
 
     gr.Markdown("""
     # 🏥 MedScript Guard
     ### Prescription Error Detection System
-    *Detects dangerous drug interactions, dosage errors, 
+    *Detects dangerous drug interactions, dosage errors,
     and age-based contraindications*
     ---
     """)
@@ -129,7 +137,7 @@ with gr.Blocks(title="MedScript Guard", theme=gr.themes.Soft()) as app:
             gr.Markdown("**📋 Sample Prescriptions — click to load:**")
             for sample in SAMPLE_PRESCRIPTIONS:
                 sample_btn = gr.Button(
-                    sample[:60] + "...",
+                    sample[:65] + "..." if len(sample) > 65 else sample,
                     size="sm",
                     variant="secondary"
                 )
@@ -151,7 +159,7 @@ with gr.Blocks(title="MedScript Guard", theme=gr.themes.Soft()) as app:
 
     gr.Markdown("""
     ---
-    ⚠️ *MedScript Guard v1.0 — For educational purposes only. 
+    ⚠️ *MedScript Guard v1.0 — For educational purposes only.
     Not for clinical use. Always consult a qualified healthcare professional.*
     """)
 
