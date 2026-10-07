@@ -72,3 +72,30 @@ Always consult a qualified healthcare professional.
 
 ### LOW RISK — No Issues Detected
 ![Low Risk Demo](screenshots/low_risk_demo.png)
+
+## Evaluation Results
+
+Tested against 20 real-world Indian prescription scenarios.
+
+| Category | Tests | Passed | Notes |
+|---|---|---|---|
+| Drug Interactions | 6 | 6 | Warfarin+Aspirin, SSRI+Tramadol, NSAIDs, Clopidogrel+PPI |
+| Age Contraindications | 5 | 5 | Nimesulide <12, Aspirin <16 (Disprin, Ecosprin) |
+| Dosage Errors | 4 | 4 | Aspirin, Paracetamol, Ibuprofen, Warfarin |
+| Safe Prescriptions | 3 | 3 | Amoxicillin, Metformin, Crocin correctly cleared |
+| Brand Name Mapping | 2 | 2 | Dolo→Paracetamol, Disprin→Aspirin |
+
+**Total: 40/40 tests passing (20 core + 20 Indian prescription tests)**
+
+### What the system catches
+- Dangerous drug pairs (25+ interaction rules)
+- Dosages outside safe therapeutic range (20 drugs)
+- Age-based contraindications including Indian CDSCO rulings
+- Indian brand names (Dolo, Crocin, Disprin, Ecosprin, Combiflam)
+- Indian prescription shorthand (OD, BD, TDS, SOS, PRN)
+
+### Known limitations
+- Drug list covers ~80 drugs — rare drugs not detected
+- Dosage ranges are adult ranges — pediatric weight-based dosing not implemented
+- NER is rule-based — a fine-tuned ClinicalBERT on i2b2 would handle edge cases
+- Does not handle handwritten or OCR prescription input
