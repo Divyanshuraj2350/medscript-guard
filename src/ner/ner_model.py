@@ -1,46 +1,45 @@
 import re
+import json
+import os
 
-DRUG_NAMES = [
-    # Western drugs already in system
+# Load drug list from RxNorm (11,943 drugs)
+_drug_list_path = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__)))),
+    "data", "clean_drug_list.json"
+)
+
+with open(_drug_list_path) as f:
+    RXNORM_DRUGS = set(json.load(f))
+
+# Core Indian/common drugs always included
+CORE_DRUGS = [
     "warfarin", "aspirin", "metformin", "amoxicillin", "ibuprofen",
     "acetaminophen", "paracetamol", "lisinopril", "ciprofloxacin",
-    "azithromycin", "tramadol", "potassium", "alcohol", "ssri", "antacids",
-    "naproxen", "omeprazole", "atorvastatin", "amlodipine", "simvastatin",
-    "nimesulide",
-
-    # Indian brand name generics
-    "dolo", "crocin", "combiflam", "brufen", "disprin",
-    "ecosprin", "pan", "pantoprazole", "ranitidine", "domperidone",
-    "ondansetron", "metoclopramide", "cetirizine", "levocetirizine",
-    "montelukast", "salbutamol", "budesonide", "fluticasone",
-    "prednisolone", "dexamethasone", "methylprednisolone",
-    "amoxicillin", "ampicillin", "cloxacillin", "cephalexin",
-    "azithromycin", "clarithromycin", "erythromycin", "doxycycline",
-    "tetracycline", "metronidazole", "tinidazole", "fluconazole",
-    "clotrimazole", "acyclovir", "oseltamivir",
-    "enalapril", "ramipril", "telmisartan", "losartan", "amlodipine",
-    "atenolol", "metoprolol", "propranolol", "digoxin", "furosemide",
-    "spironolactone", "hydrochlorothiazide",
-    "glibenclamide", "glimepiride", "glipizide", "sitagliptin",
-    "insulin", "thyroxine", "levothyroxine",
-    "calcium", "vitamin", "iron", "folic",
-    "diclofenac", "ketorolac", "etoricoxib", "celecoxib",
-    "codeine", "morphine", "tramadol", "fentanyl",
-    "alprazolam", "clonazepam", "diazepam", "lorazepam",
-    "amitriptyline", "escitalopram", "sertraline", "fluoxetine",
-    "risperidone", "olanzapine", "haloperidol",
-    "phenytoin", "carbamazepine", "valproate", "levetiracetam",
-    "atorvastatin", "rosuvastatin", "fenofibrate",
-    "heparin", "clopidogrel", "enoxaparin",
-    "hydroxychloroquine", "chloroquine",
-    "rifampicin", "isoniazid", "pyrazinamide", "ethambutol",
-    "albendazole", "mebendazole", "ivermectin"
+    "azithromycin", "tramadol", "potassium", "alcohol", "ssri",
+    "antacids", "naproxen", "omeprazole", "atorvastatin", "amlodipine",
+    "simvastatin", "nimesulide", "dolo", "crocin", "combiflam",
+    "brufen", "disprin", "ecosprin", "pan", "pantoprazole",
+    "ranitidine", "domperidone", "ondansetron", "metoclopramide",
+    "cetirizine", "levocetirizine", "montelukast", "salbutamol",
+    "prednisolone", "dexamethasone", "cephalexin", "clarithromycin",
+    "erythromycin", "doxycycline", "tetracycline", "metronidazole",
+    "fluconazole", "acyclovir", "enalapril", "ramipril", "telmisartan",
+    "losartan", "atenolol", "metoprolol", "propranolol", "digoxin",
+    "furosemide", "spironolactone", "hydrochlorothiazide", "glibenclamide",
+    "glimepiride", "glipizide", "sitagliptin", "insulin", "thyroxine",
+    "levothyroxine", "diclofenac", "ketorolac", "etoricoxib", "celecoxib",
+    "codeine", "morphine", "fentanyl", "alprazolam", "clonazepam",
+    "diazepam", "lorazepam", "amitriptyline", "escitalopram", "sertraline",
+    "fluoxetine", "risperidone", "olanzapine", "haloperidol", "phenytoin",
+    "carbamazepine", "valproate", "levetiracetam", "rosuvastatin",
+    "fenofibrate", "heparin", "clopidogrel", "enoxaparin",
+    "hydroxychloroquine", "chloroquine", "rifampicin", "isoniazid",
+    "pyrazinamide", "ethambutol", "albendazole", "ivermectin"
 ]
 
-# Remove duplicates while preserving order
-seen = set()
-DRUG_NAMES = [x for x in DRUG_NAMES
-              if not (x in seen or seen.add(x))]
+# Merge both lists
+ALL_DRUGS = RXNORM_DRUGS.union(set(CORE_DRUGS))
 
 # Brand name to generic mapping
 BRAND_TO_GENERIC = {
@@ -56,11 +55,29 @@ BRAND_TO_GENERIC = {
     "coumadin": "warfarin",
     "tylenol": "acetaminophen",
     "advil": "ibuprofen",
-    "motrin": "ibuprofen"
+    "motrin": "ibuprofen",
+    "augmentin": "amoxicillin",
+    "zithromax": "azithromycin",
+    "cipro": "ciprofloxacin",
+    "flagyl": "metronidazole",
+    "lasix": "furosemide",
+    "tenormin": "atenolol",
+    "lopressor": "metoprolol",
+    "norvasc": "amlodipine",
+    "lipitor": "atorvastatin",
+    "crestor": "rosuvastatin",
+    "glucophage": "metformin",
+    "januvia": "sitagliptin",
+    "synthroid": "levothyroxine",
+    "ventolin": "salbutamol",
+    "allegra": "fexofenadine",
+    "zyrtec": "cetirizine",
+    "nexium": "esomeprazole",
+    "prilosec": "omeprazole"
 }
 
 DOSAGE_PATTERN = re.compile(
-    r'\b(\d+\.?\d*)\s*(mg|ml|mcg|g|units?|iu|drops?)\b',
+    r'\b(\d+\.?\d*)\s*(mg|ml|mcg|g|units?|iu|drops?|mmol)\b',
     re.IGNORECASE
 )
 
@@ -78,15 +95,26 @@ AGE_PATTERN = re.compile(
     re.IGNORECASE
 )
 
+FREQ_MAP = {
+    "od": "once daily",
+    "bd": "twice daily",
+    "tds": "three times daily",
+    "qid": "four times daily",
+    "sos": "as needed",
+    "prn": "as needed",
+    "stat": "immediately"
+}
+
 
 def extract_entities(text: str) -> list:
     if not text:
         return []
     try:
         result = []
-
-        # DRUGS — check brand names first, map to generic
         matched_positions = set()
+        text_lower = text.lower()
+
+        # Brand names first — map to generic
         for brand, generic in BRAND_TO_GENERIC.items():
             pattern = re.compile(
                 r'\b' + re.escape(brand) + r'\b', re.IGNORECASE
@@ -100,18 +128,24 @@ def extract_entities(text: str) -> list:
                 })
                 matched_positions.add(match.start())
 
-        # Then check generic drug names
-        for drug in DRUG_NAMES:
-            pattern = re.compile(
-                r'\b' + re.escape(drug) + r'\b', re.IGNORECASE
-            )
-            match = pattern.search(text)
-            if match and match.start() not in matched_positions:
-                result.append({
-                    "entity": "DRUG",
-                    "value": drug,
-                    "score": 1.0
-                })
+        # Then all known drug names
+        for drug in ALL_DRUGS:
+            if len(drug) < 4:
+                continue
+            try:
+                pattern = re.compile(
+                    r'\b' + re.escape(drug) + r'\b', re.IGNORECASE
+                )
+                match = pattern.search(text)
+                if match and match.start() not in matched_positions:
+                    result.append({
+                        "entity": "DRUG",
+                        "value": drug,
+                        "score": 1.0
+                    })
+                    matched_positions.add(match.start())
+            except re.error:
+                continue
 
         # DOSAGES
         for match in DOSAGE_PATTERN.finditer(text):
@@ -121,21 +155,16 @@ def extract_entities(text: str) -> list:
                 "score": 1.0
             })
 
-        # FREQUENCIES — also map Indian shorthand
-        freq_map = {
-            "od": "once daily", "bd": "twice daily",
-            "tds": "three times daily", "qid": "four times daily",
-            "sos": "as needed", "prn": "as needed", "stat": "immediately"
-        }
+        # FREQUENCIES
         for match in FREQUENCY_PATTERN.finditer(text):
             val = match.group(0).lower()
             result.append({
                 "entity": "FREQUENCY",
-                "value": freq_map.get(val, val),
+                "value": FREQ_MAP.get(val, val),
                 "score": 1.0
             })
 
-        # AGE
+        # AGE — first valid match between 1 and 120
         for match in AGE_PATTERN.finditer(text):
             age_val = int(match.group(1))
             if 1 <= age_val <= 120:
