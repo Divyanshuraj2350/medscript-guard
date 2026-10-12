@@ -70,7 +70,7 @@ def analyze(prescription_text):
         details_text = ""
         try:
             from src.preprocessing.preprocessor import preprocess
-            from src.ner.ner_model import extract_entities
+            from src.ner.ner_model import extract_entities_hybrid as extract_entities
             from src.relation_extraction.relation_extractor import extract_relations
 
             cleaned = preprocess(prescription_text)

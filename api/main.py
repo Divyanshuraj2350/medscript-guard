@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from src.preprocessing.preprocessor import preprocess
-from src.ner.ner_model import extract_entities
+from src.ner.ner_model import extract_entities_hybrid as extract_entities
 from src.relation_extraction.relation_extractor import extract_relations
 from src.validation.validator import validate
 from src.scoring.scorer import score

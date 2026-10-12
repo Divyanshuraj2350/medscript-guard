@@ -1,108 +1,49 @@
 import re
 import json
 import os
+from transformers import pipeline, AutoTokenizer, AutoModelForTokenClassification
 
-# Load drug list from RxNorm (11,943 drugs)
-_drug_list_path = os.path.join(
+# ── Model path ──────────────────────────────────────────────────────
+_MODEL_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__)))),
-    "data", "clean_drug_list.json"
+    "models", "medscript-ner-model"
 )
 
-with open(_drug_list_path) as f:
-    RXNORM_DRUGS = set(json.load(f))
+# ── Load fine-tuned model once at module level ───────────────────────
+print(f"Loading fine-tuned NER model from {_MODEL_PATH}...")
+_tokenizer = AutoTokenizer.from_pretrained(_MODEL_PATH)
+_model = AutoModelForTokenClassification.from_pretrained(_MODEL_PATH)
+_ner_pipeline = pipeline(
+    "token-classification",
+    model=_model,
+    tokenizer=_tokenizer,
+    aggregation_strategy="simple",
+    device=-1  # CPU — change to 0 if GPU available
+)
+print("NER model loaded.")
 
-# Core Indian/common drugs always included
-CORE_DRUGS = [
-    "warfarin", "aspirin", "metformin", "amoxicillin", "ibuprofen",
-    "acetaminophen", "paracetamol", "lisinopril", "ciprofloxacin",
-    "azithromycin", "tramadol", "potassium", "alcohol", "ssri",
-    "antacids", "naproxen", "omeprazole", "atorvastatin", "amlodipine",
-    "simvastatin", "nimesulide", "dolo", "crocin", "combiflam",
-    "brufen", "disprin", "ecosprin", "pan", "pantoprazole",
-    "ranitidine", "domperidone", "ondansetron", "metoclopramide",
-    "cetirizine", "levocetirizine", "montelukast", "salbutamol",
-    "prednisolone", "dexamethasone", "cephalexin", "clarithromycin",
-    "erythromycin", "doxycycline", "tetracycline", "metronidazole",
-    "fluconazole", "acyclovir", "enalapril", "ramipril", "telmisartan",
-    "losartan", "atenolol", "metoprolol", "propranolol", "digoxin",
-    "furosemide", "spironolactone", "hydrochlorothiazide", "glibenclamide",
-    "glimepiride", "glipizide", "sitagliptin", "insulin", "thyroxine",
-    "levothyroxine", "diclofenac", "ketorolac", "etoricoxib", "celecoxib",
-    "codeine", "morphine", "fentanyl", "alprazolam", "clonazepam",
-    "diazepam", "lorazepam", "amitriptyline", "escitalopram", "sertraline",
-    "fluoxetine", "risperidone", "olanzapine", "haloperidol", "phenytoin",
-    "carbamazepine", "valproate", "levetiracetam", "rosuvastatin",
-    "fenofibrate", "heparin", "clopidogrel", "enoxaparin",
-    "hydroxychloroquine", "chloroquine", "rifampicin", "isoniazid",
-    "pyrazinamide", "ethambutol", "albendazole", "ivermectin"
-]
-
-# Merge both lists
-ALL_DRUGS = RXNORM_DRUGS.union(set(CORE_DRUGS))
-
-# Brand name to generic mapping
+# ── Brand name mapping ───────────────────────────────────────────────
 BRAND_TO_GENERIC = {
-    "dolo": "paracetamol",
-    "crocin": "paracetamol",
-    "combiflam": "ibuprofen",
-    "brufen": "ibuprofen",
-    "disprin": "aspirin",
-    "ecosprin": "aspirin",
-    "pan": "pantoprazole",
-    "glycomet": "metformin",
-    "glucophage": "metformin",
-    "coumadin": "warfarin",
-    "tylenol": "acetaminophen",
-    "advil": "ibuprofen",
-    "motrin": "ibuprofen",
-    "augmentin": "amoxicillin",
-    "zithromax": "azithromycin",
-    "cipro": "ciprofloxacin",
-    "flagyl": "metronidazole",
-    "lasix": "furosemide",
-    "tenormin": "atenolol",
-    "lopressor": "metoprolol",
-    "norvasc": "amlodipine",
-    "lipitor": "atorvastatin",
-    "crestor": "rosuvastatin",
-    "glucophage": "metformin",
-    "januvia": "sitagliptin",
-    "synthroid": "levothyroxine",
-    "ventolin": "salbutamol",
-    "allegra": "fexofenadine",
-    "zyrtec": "cetirizine",
-    "nexium": "esomeprazole",
-    "prilosec": "omeprazole"
+    "dolo": "paracetamol", "crocin": "paracetamol",
+    "combiflam": "ibuprofen", "brufen": "ibuprofen",
+    "disprin": "aspirin", "ecosprin": "aspirin",
+    "pan": "pantoprazole", "glycomet": "metformin",
+    "glucophage": "metformin", "coumadin": "warfarin",
+    "tylenol": "acetaminophen", "advil": "ibuprofen",
+    "augmentin": "amoxicillin", "zithromax": "azithromycin",
+    "cipro": "ciprofloxacin", "flagyl": "metronidazole",
+    "lasix": "furosemide", "tenormin": "atenolol",
+    "ventolin": "salbutamol", "zyrtec": "cetirizine",
+    "nexium": "esomeprazole", "prilosec": "omeprazole"
 }
 
-DOSAGE_PATTERN = re.compile(
-    r'\b(\d+\.?\d*)\s*(mg|ml|mcg|g|units?|iu|drops?|mmol)\b',
-    re.IGNORECASE
-)
-
-FREQUENCY_PATTERN = re.compile(
-    r'\b(once daily|twice daily|three times daily|four times daily|'
-    r'every \d+ hours?|as needed|daily|weekly|monthly|'
-    r'once a day|twice a day|three times a day|'
-    r'od|bd|tds|qid|sos|prn|stat)\b',
-    re.IGNORECASE
-)
-
-AGE_PATTERN = re.compile(
-    r'\b(?:age|aged)?\s*(\d{1,3})\s*'
-    r'(?:years?(?:\s*old)?|y/?o|yr)?\b',
-    re.IGNORECASE
-)
-
-FREQ_MAP = {
-    "od": "once daily",
-    "bd": "twice daily",
-    "tds": "three times daily",
-    "qid": "four times daily",
-    "sos": "as needed",
-    "prn": "as needed",
-    "stat": "immediately"
+# ── Label mapping from model output ─────────────────────────────────
+ENTITY_MAP = {
+    "DRUG": "DRUG", "B-DRUG": "DRUG", "I-DRUG": "DRUG",
+    "DOSE": "DOSAGE", "B-DOSE": "DOSAGE", "I-DOSE": "DOSAGE",
+    "FREQ": "FREQUENCY", "B-FREQ": "FREQUENCY", "I-FREQ": "FREQUENCY",
+    "AGE": "PATIENT_AGE", "B-AGE": "PATIENT_AGE", "I-AGE": "PATIENT_AGE",
 }
 
 
@@ -110,72 +51,86 @@ def extract_entities(text: str) -> list:
     if not text:
         return []
     try:
-        result = []
-        matched_positions = set()
-        text_lower = text.lower()
-
-        # Brand names first — map to generic
+        # Apply brand name mapping first
+        text_mapped = text
         for brand, generic in BRAND_TO_GENERIC.items():
-            pattern = re.compile(
-                r'\b' + re.escape(brand) + r'\b', re.IGNORECASE
-            )
-            match = pattern.search(text)
-            if match:
-                result.append({
-                    "entity": "DRUG",
-                    "value": generic,
-                    "score": 1.0
-                })
-                matched_positions.add(match.start())
+            pattern = re.compile(r'\b' + re.escape(brand) + r'\b', re.IGNORECASE)
+            text_mapped = pattern.sub(generic, text_mapped)
 
-        # Then all known drug names
-        for drug in ALL_DRUGS:
-            if len(drug) < 4:
+        # Run fine-tuned model
+        raw_results = _ner_pipeline(text_mapped)
+
+        result = []
+        seen_values = set()
+
+        for r in raw_results:
+            entity_group = r.get("entity_group", r.get("entity", ""))
+            mapped = ENTITY_MAP.get(entity_group)
+            if not mapped:
                 continue
-            try:
-                pattern = re.compile(
-                    r'\b' + re.escape(drug) + r'\b', re.IGNORECASE
-                )
-                match = pattern.search(text)
-                if match and match.start() not in matched_positions:
-                    result.append({
-                        "entity": "DRUG",
-                        "value": drug,
-                        "score": 1.0
-                    })
-                    matched_positions.add(match.start())
-            except re.error:
+            if r["score"] < 0.5 or len(r["word"].strip()) <= 1:
                 continue
 
-        # DOSAGES
-        for match in DOSAGE_PATTERN.finditer(text):
+            value = r["word"].strip().lower()
+            # Skip duplicates
+            key = f"{mapped}:{value}"
+            if key in seen_values:
+                continue
+            seen_values.add(key)
+
             result.append({
-                "entity": "DOSAGE",
-                "value": match.group(0),
-                "score": 1.0
+                "entity": mapped,
+                "value": value,
+                "score": round(r["score"], 4)
             })
 
-        # FREQUENCIES
-        for match in FREQUENCY_PATTERN.finditer(text):
-            val = match.group(0).lower()
-            result.append({
-                "entity": "FREQUENCY",
-                "value": FREQ_MAP.get(val, val),
-                "score": 1.0
-            })
+        return result
 
-        # AGE — first valid match between 1 and 120
-        for match in AGE_PATTERN.finditer(text):
+    except Exception as e:
+        print(f"NER error: {e}")
+        return []
+
+
+# Regex fallback for age — model sometimes misses it
+import re as _re
+_AGE_PATTERN = _re.compile(
+    r'\b(?:age|aged)?\s*(\d{1,3})\s*(?:years?(?:\s*old)?|y/?o|yr)?\b',
+    _re.IGNORECASE
+)
+
+_ALCOHOL_PATTERN = _re.compile(r'\balcohol\b', _re.IGNORECASE)
+
+
+def extract_entities_hybrid(text: str) -> list:
+    """Model-based NER with regex fallback for age and alcohol."""
+    if not text:
+        return []
+
+    results = extract_entities(text)
+
+    # Check if age was detected
+    has_age = any(e["entity"] == "PATIENT_AGE" for e in results)
+    if not has_age:
+        for match in _AGE_PATTERN.finditer(text):
             age_val = int(match.group(1))
             if 1 <= age_val <= 120:
-                result.append({
+                results.append({
                     "entity": "PATIENT_AGE",
-                    "value": match.group(0).strip(),
+                    "value": str(age_val),
                     "score": 1.0
                 })
                 break
 
-        return result
-    except Exception as e:
-        print(f"NER error: {e}")
-        return []
+    # Check if alcohol was detected as drug
+    has_alcohol = any(
+        e["entity"] == "DRUG" and "alcohol" in e["value"]
+        for e in results
+    )
+    if not has_alcohol and _ALCOHOL_PATTERN.search(text):
+        results.append({
+            "entity": "DRUG",
+            "value": "alcohol",
+            "score": 1.0
+        })
+
+    return results
