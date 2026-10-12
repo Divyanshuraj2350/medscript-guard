@@ -12,3 +12,4 @@ build/
 screen_sort/
 .DS_Store
 mlflow.db
+models/
