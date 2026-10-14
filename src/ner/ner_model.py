@@ -4,14 +4,10 @@ import os
 from transformers import pipeline, AutoTokenizer, AutoModelForTokenClassification
 
 # ── Model path ──────────────────────────────────────────────────────
-_MODEL_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__)))),
-    "models", "medscript-ner-model"
-)
+_MODEL_PATH = "Divyanshu2350/medscript-ner-model"
 
 # ── Load fine-tuned model once at module level ───────────────────────
-print(f"Loading fine-tuned NER model from {_MODEL_PATH}...")
+print(f"Loading NER model from HuggingFace: {_MODEL_PATH}...")
 _tokenizer = AutoTokenizer.from_pretrained(_MODEL_PATH)
 _model = AutoModelForTokenClassification.from_pretrained(_MODEL_PATH)
 _ner_pipeline = pipeline(
