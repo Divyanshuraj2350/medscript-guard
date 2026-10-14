@@ -99,3 +99,13 @@ Tested against 20 real-world Indian prescription scenarios.
 - Dosage ranges are adult ranges — pediatric weight-based dosing not implemented
 - NER is rule-based — a fine-tuned ClinicalBERT on i2b2 would handle edge cases
 - Does not handle handwritten or OCR prescription input
+
+## Fine-tuned NER Model
+
+The NER engine uses a BioBERT model fine-tuned on labeled prescription data.
+
+- **Model:** [Divyanshu2350/medscript-ner-model](https://huggingface.co/Divyanshu2350/medscript-ner-model)
+- **Base model:** dmis-lab/biobert-base-cased-v1.2
+- **Fine-tuned on:** 15 labeled Indian prescription examples
+- **Entities:** DRUG, DOSE, FREQ, AGE
+- **Confidence:** 0.95-0.99 on test cases
